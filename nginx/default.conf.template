@@ -2,30 +2,30 @@
 
 server {
     listen 80;
-    server_name _;  # Puedes reemplazar esto con tu dominio real
+    server_name _; # Puedes reemplazar esto con tu dominio real
 
     # --- Servir Frontend Estático ---
     location /projection/ {
-        alias /usr/share/nginx/html/clbb-projection/frontend/;
+        alias /usr/share/nginx/html/clbb-projection/;
         index index.html;
-        try_files $uri $uri/ /clbb-projection/frontend/index.html;
+        try_files $uri $uri/ /clbb-projection/index.html;
     }
 
     location /dashboard/ {
-        alias /usr/share/nginx/html/clbb-front/frontend/;
+        alias /usr/share/nginx/html/clbb-front/;
         index index.html;
-        try_files $uri $uri/ /clbb-front/frontend/index.html;
+        try_files $uri $uri/ /clbb-front/index.html;
     }
 
     location /remote-controller/ {
-        alias /usr/share/nginx/html/clbb-remote-controller/frontend/;
+        alias /usr/share/nginx/html/clbb-remote-controller/;
         index index.html;
-        try_files $uri $uri/ /clbb-remote-controller/frontend/index.html;
+        try_files $uri $uri/ /clbb-remote-controller/index.html;
     }
 
     # --- Reverse Proxy para la API de Django ---
     location /api/ {
-        proxy_pass http://web:${API_PORT}/api/;  # Usa la variable API_PORT
+        proxy_pass http://web:${API_PORT}/api/; # Usa la variable API_PORT
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -39,7 +39,7 @@ server {
     
     # --- Reverse Proxy para Media Resources ---
     location /media/ {
-        proxy_pass http://web:${API_PORT}/media/;  # Usa la variable API_PORT
+        proxy_pass http://web:${API_PORT}/media/; # Usa la variable API_PORT
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

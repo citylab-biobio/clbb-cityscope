@@ -4,9 +4,9 @@ services:
     container_name: core_api
     build: ./clbb-io/core/.
     ports:
-      - "${API_PORT}:9900"  # Usa la variable API_PORT desde el archivo .env
+      - "${API_PORT}:9900" # Usa la variable API_PORT desde el archivo .env
     env_file:
-      - .env  # Declara el archivo .env aquí
+      - .env # Declara el archivo .env aquí
     volumes:
       - ./clbb-io/core/.:/app
     depends_on:
@@ -17,13 +17,45 @@ services:
   dashboard-builder:
     container_name: dashboard_builder
     build:
-      context: ./clbb-front/frontend
+      context: ./clbb-front
       dockerfile: Dockerfile
-    env_file:
-      - .env
+      args:
+        - VITE_SERVER_ADDRESS=${IP_ADDRESS}:${FRONT_PORT}
+        - VITE_REMOTE_CONTROLLER_URL=http://${IP_ADDRESS}:${FRONT_PORT}/remote-controller/
     volumes:
-      - dashboard_build:/app/build  # Monta el volumen para compartir el build
-    command: ["npm", "run", "build"]  # Ejecuta el comando de build y sale
+      - dashboard_build:/app/dist
+    command: ["pnpm", "run", "build"]
+    networks:
+      - clbb_core
+
+  remote-controller:
+    container_name: remote-controller
+    build:
+      context: ./clbb-remote-controller
+      dockerfile: Dockerfile
+      args:
+        - VITE_SERVER_ADDRESS=${IP_ADDRESS}:${FRONT_PORT}
+        - VITE_URL_ADDRESS=${IP_ADDRESS}:${URL_PORT}
+    volumes:
+      - remote_controller_build:/app/dist
+    command: ["pnpm", "run", "build"]
+    depends_on:
+      - web
+    networks:
+      - clbb_core
+
+  projection:
+    container_name: projection
+    build: 
+      context: ./clbb-projection
+      dockerfile: Dockerfile
+      args:
+        - VITE_SERVER_ADDRESS=${IP_ADDRESS}:${FRONT_PORT}
+    volumes:
+      - projection_build:/app/dist
+    command: ["pnpm", "run", "build"]
+    depends_on:
+      - web
     networks:
       - clbb_core
 
@@ -35,14 +67,16 @@ services:
     env_file:
       - .env 
     volumes:
-      - ./clbb-projection/frontend:/usr/share/nginx/html/clbb-projection/frontend
-      - ./clbb-remote-controller/frontend:/usr/share/nginx/html/clbb-remote-controller/frontend
-      - dashboard_build:/usr/share/nginx/html/clbb-front/frontend
+      - projection_build:/usr/share/nginx/html/clbb-projection
+      - remote_controller_build:/usr/share/nginx/html/clbb-remote-controller
+      - dashboard_build:/usr/share/nginx/html/clbb-front
     ports:
       - "${FRONT_PORT}:80"
     depends_on:
       - web
       - dashboard-builder
+      - remote-controller
+      - projection
     networks:
       - clbb_core
 
@@ -52,7 +86,10 @@ services:
     env_file:
       - .env
     volumes:
-      - postgres_data_core:/var/lib/postgresql/data
+      - postgres_data_core:/var/lib/postgresql/
+      - ./dumps:/dumps
+    ports:
+      - "${DB_PORT}:5432"
     networks:
       - clbb_core
 
@@ -67,9 +104,11 @@ services:
 
 networks:
   clbb_core:
-    name: clbb_core        # Para que la red tenga este nombre EXACTO
+    name: clbb_core # Para que la red tenga este nombre EXACTO
     driver: bridge
 
 volumes:
   postgres_data_core:
   dashboard_build:
+  remote_controller_build:
+  projection_build:
